@@ -12,6 +12,7 @@
     <header id="topbar">
       <div id="brand">🌸 GARDEN CLICKER</div>
       <div id="prestige-info">
+        <button id="mute-btn" class="icon-btn" aria-label="サウンドのオン/オフ">🔊</button>
         <span id="singularity-count">黄金の種: 0</span>
         <button id="prestige-btn" disabled>季節を巡らせる</button>
       </div>
@@ -40,14 +41,18 @@
                 </linearGradient>
               </defs>
               <g transform="translate(100,100)">
-                <ellipse transform="rotate(0)"   cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
-                <ellipse transform="rotate(45)"  cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
-                <ellipse transform="rotate(90)"  cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
-                <ellipse transform="rotate(135)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
-                <ellipse transform="rotate(180)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
-                <ellipse transform="rotate(225)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
-                <ellipse transform="rotate(270)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
-                <ellipse transform="rotate(315)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <!-- Each petal sits in its own static-rotated <g> so the CSS
+                     transform used for the shed/regrow animation (applied to
+                     the ellipse) operates in that petal's own local "outward"
+                     space instead of overriding its radial placement. -->
+                <g transform="rotate(0)">   <ellipse class="petal" id="petal-0" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/></g>
+                <g transform="rotate(45)">  <ellipse class="petal" id="petal-1" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/></g>
+                <g transform="rotate(90)">  <ellipse class="petal" id="petal-2" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/></g>
+                <g transform="rotate(135)"> <ellipse class="petal" id="petal-3" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/></g>
+                <g transform="rotate(180)"> <ellipse class="petal" id="petal-4" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/></g>
+                <g transform="rotate(225)"> <ellipse class="petal" id="petal-5" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/></g>
+                <g transform="rotate(270)"> <ellipse class="petal" id="petal-6" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/></g>
+                <g transform="rotate(315)"> <ellipse class="petal" id="petal-7" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/></g>
                 <circle r="34" fill="url(#centerGrad)"/>
               </g>
             </svg>
@@ -69,6 +74,13 @@
         </div>
 
         <div id="tab-buildings" class="tab-content active">
+          <div id="buy-qty-row" class="qty-row">
+            <span class="qty-label">購入数</span>
+            <button class="qty-btn active" data-qty="1">×1</button>
+            <button class="qty-btn" data-qty="10">×10</button>
+            <button class="qty-btn" data-qty="100">×100</button>
+            <button class="qty-btn" data-qty="max">MAX</button>
+          </div>
           <div id="buildings-list"></div>
         </div>
 
