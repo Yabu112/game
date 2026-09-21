@@ -242,8 +242,35 @@ coreBtn.addEventListener('click', (e) => {
   state.totalEarned += gain;
   spawnFloatNumber(e, gain, isCrit);
   pulseCore();
+  shedRandomPetal();
   checkAchievements();
 });
+
+// ---------- petal shed/regrow ----------
+// Purely a visual flourish (not part of saved state): each click knocks one
+// currently-attached petal off the flower; it drifts away via the .missing
+// CSS transition, then regrows on its own after a short random delay.
+const PETAL_COUNT = 8;
+const petalMissing = new Array(PETAL_COUNT).fill(false);
+
+function shedRandomPetal() {
+  const available = [];
+  for (let i = 0; i < PETAL_COUNT; i++) {
+    if (!petalMissing[i]) available.push(i);
+  }
+  if (available.length === 0) return; // whole flower is mid-regrow, let it be
+  const idx = available[Math.floor(Math.random() * available.length)];
+  const el = document.getElementById('petal-' + idx);
+  if (!el) return;
+
+  petalMissing[idx] = true;
+  el.classList.add('missing');
+
+  setTimeout(() => {
+    petalMissing[idx] = false;
+    el.classList.remove('missing');
+  }, rand(900, 2200));
+}
 
 function spawnFloatNumber(e, gain, isCrit) {
   const rect = coreBtn.getBoundingClientRect();
