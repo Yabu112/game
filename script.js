@@ -1,12 +1,15 @@
 'use strict';
 
 /* =========================================================
-   COSMIC CLICKER
-   Idle/incremental clicker: click the core for Stardust,
-   buy buildings for passive income, unlock upgrades, and
-   prestige into Singularity Cores for a permanent multiplier.
+   GARDEN CLICKER
+   Idle/incremental clicker: click the flower for Petals, buy
+   garden buildings for passive income, unlock upgrades, and
+   cycle the season for a permanent multiplier (Golden Seeds).
    ========================================================= */
 
+// Save key intentionally left as-is (predates this reskin) so existing
+// browser saves keep loading correctly — it's an internal storage id,
+// never shown to the player.
 const SAVE_KEY = 'cosmicClickerSave';
 const OFFLINE_CAP_SEC = 8 * 3600; // cap offline progress at 8 hours
 const CRIT_CHANCE = 0.1;
@@ -18,47 +21,49 @@ const GOLDEN_LIFETIME_MS = 13000;
 const rand = (a, b) => a + Math.random() * (b - a);
 
 // ---------- data ----------
+// `id` / `target` values are the save-file keys and must never change —
+// only the displayed name/icon/desc were restyled for the garden theme.
 const BUILDING_DEFS = [
-  { id: 'drone',     name: 'マイニングドローン',   icon: '🛰️', baseCost: 15,         baseCps: 0.1 },
-  { id: 'bot',       name: '採掘ロボット',         icon: '🤖', baseCost: 100,        baseCps: 1 },
-  { id: 'refinery',  name: '精製プラント',         icon: '🏭', baseCost: 1100,       baseCps: 8 },
-  { id: 'satellite', name: '衛星コレクター',       icon: '🛸', baseCost: 12000,      baseCps: 47 },
-  { id: 'reactor',   name: '量子リアクター',       icon: '⚛️', baseCost: 130000,     baseCps: 260 },
-  { id: 'wormhole',  name: 'ワームホール抽出機',   icon: '🌀', baseCost: 1400000,    baseCps: 1400 },
-  { id: 'forge',     name: '恒星炉',               icon: '☀️', baseCost: 20000000,   baseCps: 7800 },
-  { id: 'dyson',     name: 'ダイソン球',           icon: '🪐', baseCost: 330000000,  baseCps: 44000 },
+  { id: 'drone',     name: 'ミツバチ',         icon: '🐝', baseCost: 15,         baseCps: 0.1 },
+  { id: 'bot',       name: '苗木ロボット',     icon: '🌱', baseCost: 100,        baseCps: 1 },
+  { id: 'refinery',  name: '自動散水機',       icon: '💧', baseCost: 1100,       baseCps: 8 },
+  { id: 'satellite', name: 'チョウの楽園',     icon: '🦋', baseCost: 12000,      baseCps: 47 },
+  { id: 'reactor',   name: '温室',             icon: '🏡', baseCost: 130000,     baseCps: 260 },
+  { id: 'wormhole',  name: '虹のシャワー',     icon: '🌈', baseCost: 1400000,    baseCps: 1400 },
+  { id: 'forge',     name: '大樹',             icon: '🌳', baseCost: 20000000,   baseCps: 7800 },
+  { id: 'dyson',     name: 'エデンの園',       icon: '🌺', baseCost: 330000000,  baseCps: 44000 },
 ];
 
 const UPGRADE_DEFS = [
-  { id: 'click2',   name: 'クリック強化 I',   icon: '👆', desc: 'クリック威力が2倍になる', cost: 100,      requireEarned: 80,       type: 'click', mult: 2 },
-  { id: 'drone2',   name: 'ドローン効率化',   icon: '🛰️', desc: 'マイニングドローンの生産が2倍になる', cost: 300,  requireEarned: 200,      type: 'building', target: 'drone', mult: 2 },
-  { id: 'click3',   name: 'クリック強化 II',  icon: '👆', desc: 'クリック威力がさらに2倍になる', cost: 2000,   requireEarned: 1500,     type: 'click', mult: 2 },
-  { id: 'bot2',     name: 'ロボット効率化',   icon: '🤖', desc: '採掘ロボットの生産が2倍になる', cost: 2500,   requireEarned: 1800,     type: 'building', target: 'bot', mult: 2 },
-  { id: 'global2',  name: '共鳴フィールド I', icon: '✨', desc: '全ての生産量が1.5倍になる', cost: 15000,      requireEarned: 10000,    type: 'global', mult: 1.5 },
-  { id: 'refinery2',name: 'プラント自動化',   icon: '🏭', desc: '精製プラントの生産が2倍になる', cost: 30000,  requireEarned: 20000,    type: 'building', target: 'refinery', mult: 2 },
-  { id: 'click4',   name: 'クリック強化 III', icon: '👆', desc: 'クリック威力がさらに2倍になる', cost: 50000,  requireEarned: 35000,    type: 'click', mult: 2 },
-  { id: 'satellite2',name: '衛星ネットワーク化',icon: '🛸', desc: '衛星コレクターの生産が2倍になる', cost: 250000, requireEarned: 180000,  type: 'building', target: 'satellite', mult: 2 },
-  { id: 'global3',  name: '共鳴フィールド II',icon: '✨', desc: '全ての生産量が1.5倍になる', cost: 800000,     requireEarned: 600000,   type: 'global', mult: 1.5 },
-  { id: 'reactor2', name: 'リアクター最適化', icon: '⚛️', desc: '量子リアクターの生産が2倍になる', cost: 2500000, requireEarned: 1800000, type: 'building', target: 'reactor', mult: 2 },
-  { id: 'click5',   name: 'クリック強化 IV',  icon: '👆', desc: 'クリック威力がさらに2倍になる', cost: 5000000, requireEarned: 3500000, type: 'click', mult: 2 },
-  { id: 'global4',  name: '共鳴フィールド III',icon: '✨', desc: '全ての生産量が2倍になる', cost: 50000000,    requireEarned: 35000000, type: 'global', mult: 2 },
+  { id: 'click2',   name: 'そよ風の後押し I',   icon: '🍃', desc: '収穫力が2倍になる', cost: 100,      requireEarned: 80,       type: 'click', mult: 2 },
+  { id: 'drone2',   name: '巣箱の増設',         icon: '🐝', desc: 'ミツバチの生産が2倍になる', cost: 300,  requireEarned: 200,      type: 'building', target: 'drone', mult: 2 },
+  { id: 'click3',   name: 'そよ風の後押し II',  icon: '🍃', desc: '収穫力がさらに2倍になる', cost: 2000,   requireEarned: 1500,     type: 'click', mult: 2 },
+  { id: 'bot2',     name: '肥料強化',           icon: '🌱', desc: '苗木ロボットの生産が2倍になる', cost: 2500,   requireEarned: 1800,     type: 'building', target: 'bot', mult: 2 },
+  { id: 'global2',  name: '陽だまりの恵み I',   icon: '☀️', desc: '全ての生産量が1.5倍になる', cost: 15000,      requireEarned: 10000,    type: 'global', mult: 1.5 },
+  { id: 'refinery2',name: '灌漑効率化',         icon: '💧', desc: '自動散水機の生産が2倍になる', cost: 30000,  requireEarned: 20000,    type: 'building', target: 'refinery', mult: 2 },
+  { id: 'click4',   name: 'そよ風の後押し III', icon: '🍃', desc: '収穫力がさらに2倍になる', cost: 50000,  requireEarned: 35000,    type: 'click', mult: 2 },
+  { id: 'satellite2',name: '楽園の拡張',        icon: '🦋', desc: 'チョウの楽園の生産が2倍になる', cost: 250000, requireEarned: 180000,  type: 'building', target: 'satellite', mult: 2 },
+  { id: 'global3',  name: '陽だまりの恵み II',  icon: '☀️', desc: '全ての生産量が1.5倍になる', cost: 800000,     requireEarned: 600000,   type: 'global', mult: 1.5 },
+  { id: 'reactor2', name: '温室の拡張',         icon: '🏡', desc: '温室の生産が2倍になる', cost: 2500000, requireEarned: 1800000, type: 'building', target: 'reactor', mult: 2 },
+  { id: 'click5',   name: 'そよ風の後押し IV',  icon: '🍃', desc: '収穫力がさらに2倍になる', cost: 5000000, requireEarned: 3500000, type: 'click', mult: 2 },
+  { id: 'global4',  name: '陽だまりの恵み III', icon: '☀️', desc: '全ての生産量が2倍になる', cost: 50000000,    requireEarned: 35000000, type: 'global', mult: 2 },
 ];
 
 const ACHIEVEMENT_DEFS = [
-  { id: 'click_1',      name: '最初のクリック',   icon: '👆', desc: '1回クリックする', bonus: 0.01, check: s => s.totalClicks >= 1 },
-  { id: 'click_100',    name: 'クリック職人',     icon: '🖱️', desc: '100回クリックする', bonus: 0.01, check: s => s.totalClicks >= 100 },
-  { id: 'click_1000',   name: 'クリックマスター', icon: '🖱️', desc: '1,000回クリックする', bonus: 0.02, check: s => s.totalClicks >= 1000 },
-  { id: 'crit_50',      name: '会心の一撃',       icon: '💥', desc: 'クリティカルを50回出す', bonus: 0.02, check: s => s.critCount >= 50 },
-  { id: 'earn_1k',      name: '駆け出し採掘者',   icon: '⭐', desc: '累計1,000スターダストを稼ぐ', bonus: 0.01, check: s => s.totalEarned >= 1000 },
-  { id: 'earn_100k',    name: '中堅採掘者',       icon: '🌟', desc: '累計100,000スターダストを稼ぐ', bonus: 0.02, check: s => s.totalEarned >= 100000 },
-  { id: 'earn_10m',     name: 'ベテラン採掘者',   icon: '💫', desc: '累計10,000,000スターダストを稼ぐ', bonus: 0.03, check: s => s.totalEarned >= 1e7 },
-  { id: 'earn_1b',      name: '伝説の採掘者',     icon: '🌌', desc: '累計1,000,000,000スターダストを稼ぐ', bonus: 0.05, check: s => s.totalEarned >= 1e9 },
-  { id: 'building_10',  name: '小さな艦隊',       icon: '🛰️', desc: 'いずれかの施設を10個所有する', bonus: 0.01, check: s => Object.values(s.buildings).some(v => v >= 10) },
-  { id: 'building_all', name: 'フルライン稼働',   icon: '🏗️', desc: 'すべての施設を1つ以上所有する', bonus: 0.02, check: s => BUILDING_DEFS.every(b => s.buildings[b.id] >= 1) },
-  { id: 'golden_1',     name: '幸運の採取',       icon: '✨', desc: '黄金のスターダストを1回クリックする', bonus: 0.01, check: s => s.goldenClicks >= 1 },
-  { id: 'golden_10',    name: '黄金の寵児',       icon: '🌠', desc: '黄金のスターダストを10回クリックする', bonus: 0.02, check: s => s.goldenClicks >= 10 },
-  { id: 'prestige_1',   name: '新たな特異点',     icon: '🌀', desc: '1回転生する', bonus: 0.02, check: s => s.prestigeCount >= 1 },
-  { id: 'prestige_5',   name: '輪廻の彼方',       icon: '♾️', desc: '5回転生する', bonus: 0.03, check: s => s.prestigeCount >= 5 },
+  { id: 'click_1',      name: '最初の一輪',       icon: '🌼', desc: '1回クリックする', bonus: 0.01, check: s => s.totalClicks >= 1 },
+  { id: 'click_100',    name: 'ガーデナーの手',   icon: '🧤', desc: '100回クリックする', bonus: 0.01, check: s => s.totalClicks >= 100 },
+  { id: 'click_1000',   name: '庭師の魂',         icon: '🌻', desc: '1,000回クリックする', bonus: 0.02, check: s => s.totalClicks >= 1000 },
+  { id: 'crit_50',      name: '会心の芽吹き',     icon: '💥', desc: 'クリティカルを50回出す', bonus: 0.02, check: s => s.critCount >= 50 },
+  { id: 'earn_1k',      name: '駆け出しの庭師',   icon: '🌱', desc: '累計1,000花びらを集める', bonus: 0.01, check: s => s.totalEarned >= 1000 },
+  { id: 'earn_100k',    name: '中堅の庭師',       icon: '🌿', desc: '累計100,000花びらを集める', bonus: 0.02, check: s => s.totalEarned >= 100000 },
+  { id: 'earn_10m',     name: 'ベテランの庭師',   icon: '🌳', desc: '累計10,000,000花びらを集める', bonus: 0.03, check: s => s.totalEarned >= 1e7 },
+  { id: 'earn_1b',      name: '伝説の庭師',       icon: '🏵️', desc: '累計1,000,000,000花びらを集める', bonus: 0.05, check: s => s.totalEarned >= 1e9 },
+  { id: 'building_10',  name: '小さな楽園',       icon: '🦋', desc: 'いずれかの庭園設備を10個所有する', bonus: 0.01, check: s => Object.values(s.buildings).some(v => v >= 10) },
+  { id: 'building_all', name: 'フルブルーム',     icon: '🌈', desc: 'すべての庭園設備を1つ以上所有する', bonus: 0.02, check: s => BUILDING_DEFS.every(b => s.buildings[b.id] >= 1) },
+  { id: 'golden_1',     name: '幸運の花摘み',     icon: '✨', desc: '黄金の花びらを1回クリックする', bonus: 0.01, check: s => s.goldenClicks >= 1 },
+  { id: 'golden_10',    name: '黄金の寵児',       icon: '🌟', desc: '黄金の花びらを10回クリックする', bonus: 0.02, check: s => s.goldenClicks >= 10 },
+  { id: 'prestige_1',   name: '新たな季節',       icon: '🍂', desc: '1回季節を巡らせる', bonus: 0.02, check: s => s.prestigeCount >= 1 },
+  { id: 'prestige_5',   name: '巡る四季の彼方',   icon: '🌍', desc: '5回季節を巡らせる', bonus: 0.03, check: s => s.prestigeCount >= 5 },
 ];
 
 // ---------- state ----------
@@ -451,7 +456,7 @@ function spawnGoldenOrb() {
   orb.className = 'golden-orb';
   orb.style.left = x + 'px';
   orb.style.top = y + 'px';
-  orb.setAttribute('aria-label', '黄金のスターダスト');
+  orb.setAttribute('aria-label', '黄金の花びら');
   goldenLayerEl.appendChild(orb);
 
   const timeoutId = setTimeout(() => {
@@ -475,13 +480,13 @@ function applyGoldenEffect() {
     const gain = Math.max(totalCps() * 60, clickValue() * 40, 50);
     state.stardust += gain;
     state.totalEarned += gain;
-    showToast(`✨ 黄金のスターダスト！ +${fmtNum(gain)}`);
+    showToast(`✨ 黄金の花びら！ +${fmtNum(gain)}`);
   } else if (roll < 0.7) {
     state.buff = { type: 'frenzy', mult: 7, until: Date.now() + 20000 };
-    showToast('⚡ フレンジー発動！ クリック威力7倍（20秒）');
+    showToast('🌼 満開フィーバー発動！ 収穫力7倍（20秒）');
   } else {
     state.buff = { type: 'surge', mult: 3, until: Date.now() + 30000 };
-    showToast('🔥 生産サージ発動！ 生産量3倍（30秒）');
+    showToast('🌦️ めぐみの雨発動！ 生産量3倍（30秒）');
   }
   checkAchievements();
   renderAll();
@@ -492,8 +497,8 @@ function renderBuffBanner() {
   if (!b) { buffBannerEl.classList.add('hidden'); return; }
   const remain = Math.max(0, Math.ceil((b.until - Date.now()) / 1000));
   const label = b.type === 'frenzy'
-    ? `⚡ フレンジー中: クリック${b.mult}倍`
-    : `🔥 生産サージ中: 生産${b.mult}倍`;
+    ? `🌼 満開フィーバー中: 収穫${b.mult}倍`
+    : `🌦️ めぐみの雨中: 生産${b.mult}倍`;
   buffBannerEl.textContent = `${label}（残り${remain}秒）`;
   buffBannerEl.classList.remove('hidden');
 }
@@ -502,7 +507,7 @@ function renderBuffBanner() {
 function updatePrestigeUI() {
   const gain = potentialSingularities();
   prestigeBtn.disabled = gain <= 0;
-  singularityCountEl.textContent = `特異点: ${state.singularities}（生産 +${Math.round((prestigeMult() - 1) * 100)}%）`;
+  singularityCountEl.textContent = `黄金の種: ${state.singularities}（生産 +${Math.round((prestigeMult() - 1) * 100)}%）`;
 }
 
 prestigeBtn.addEventListener('click', () => {
@@ -531,7 +536,7 @@ prestigeConfirm.addEventListener('click', () => {
 function renderAll() {
   stardustTotalEl.textContent = fmtNum(state.stardust);
   cpsLabelEl.textContent = `毎秒 +${fmtNum(totalCps())}`;
-  clickPowerLabelEl.textContent = `クリック威力: +${fmtNum(clickValue())}`;
+  clickPowerLabelEl.textContent = `収穫力: +${fmtNum(clickValue())}`;
   renderBuildings();
   renderUpgrades();
   renderAchievements();
@@ -579,7 +584,7 @@ function applyOfflineProgress() {
   if (gain > 0) {
     state.stardust += gain;
     state.totalEarned += gain;
-    alert(`おかえりなさい！\n離れていた間に ${fmtNum(gain)} スターダストを自動採取しました。`);
+    alert(`おかえりなさい！\n離れていた間に ${fmtNum(gain)} 花びらが集まりました。`);
   }
 }
 

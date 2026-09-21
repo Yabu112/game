@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>COSMIC CLICKER</title>
+<title>GARDEN CLICKER</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
 
     <header id="topbar">
-      <div id="brand">✦ COSMIC CLICKER</div>
+      <div id="brand">🌸 GARDEN CLICKER</div>
       <div id="prestige-info">
-        <span id="singularity-count">特異点: 0</span>
-        <button id="prestige-btn" disabled>転生する</button>
+        <span id="singularity-count">黄金の種: 0</span>
+        <button id="prestige-btn" disabled>季節を巡らせる</button>
       </div>
     </header>
 
@@ -21,36 +21,49 @@
 
       <section id="click-area">
         <div id="stardust-total">0</div>
-        <div id="stardust-label">スターダスト</div>
+        <div id="stardust-label">花びら</div>
         <div id="cps-label">毎秒 +0</div>
         <div id="buff-banner" class="hidden"></div>
 
         <div id="core-wrap">
-          <button id="core-btn" aria-label="コアをクリックしてスターダストを採取">
+          <button id="core-btn" aria-label="花をクリックして花びらを集める">
             <svg id="core-svg" viewBox="0 0 200 200">
               <defs>
-                <radialGradient id="coreGrad" cx="50%" cy="45%" r="60%">
-                  <stop offset="0%" stop-color="#fff6da"/>
-                  <stop offset="35%" stop-color="#ffd24d"/>
-                  <stop offset="75%" stop-color="#b678ff"/>
-                  <stop offset="100%" stop-color="#5b2fb8"/>
+                <radialGradient id="centerGrad" cx="50%" cy="45%" r="60%">
+                  <stop offset="0%" stop-color="#fffbe0"/>
+                  <stop offset="55%" stop-color="#ffb703"/>
+                  <stop offset="100%" stop-color="#e8860b"/>
                 </radialGradient>
+                <linearGradient id="petalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#ffd7e6"/>
+                  <stop offset="100%" stop-color="#ff6f91"/>
+                </linearGradient>
               </defs>
-              <circle cx="100" cy="100" r="88" fill="url(#coreGrad)"/>
+              <g transform="translate(100,100)">
+                <ellipse transform="rotate(0)"   cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <ellipse transform="rotate(45)"  cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <ellipse transform="rotate(90)"  cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <ellipse transform="rotate(135)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <ellipse transform="rotate(180)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <ellipse transform="rotate(225)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <ellipse transform="rotate(270)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <ellipse transform="rotate(315)" cy="-52" rx="26" ry="46" fill="url(#petalGrad)"/>
+                <circle r="34" fill="url(#centerGrad)"/>
+              </g>
             </svg>
           </button>
 
           <div id="float-layer"></div>
         </div>
 
-        <p id="click-power-label">クリック威力: +1</p>
+        <p id="click-power-label">収穫力: +1</p>
 
         <div id="golden-layer"></div>
       </section>
 
       <section id="side-panel">
         <div class="tabs">
-          <button class="tab-btn active" data-tab="buildings">施設</button>
+          <button class="tab-btn active" data-tab="buildings">庭園</button>
           <button class="tab-btn" data-tab="upgrades">アップグレード</button>
           <button class="tab-btn" data-tab="achievements">実績 <span id="achv-count">0/0</span></button>
         </div>
@@ -77,12 +90,12 @@
 
   <div id="prestige-modal" class="overlay hidden">
     <div class="modal-box">
-      <h2>特異点への転生</h2>
-      <p class="modal-desc">全てのスターダストと施設をリセットして<br><b id="prestige-gain">0</b> 個の特異点コアを獲得します。</p>
-      <p class="modal-desc small">特異点コア 1個につき、生産量とクリック威力が永続的に +2% 上昇します。</p>
+      <h2>新しい季節への準備</h2>
+      <p class="modal-desc">すべての花びらと庭園をリセットして<br><b id="prestige-gain">0</b> 個の黄金の種を獲得します。</p>
+      <p class="modal-desc small">黄金の種 1個につき、生産量と収穫力が永続的に +2% 上昇します。</p>
       <div class="modal-actions">
         <button id="prestige-cancel" class="btn-secondary">キャンセル</button>
-        <button id="prestige-confirm" class="btn-primary">転生する</button>
+        <button id="prestige-confirm" class="btn-primary">季節を巡らせる</button>
       </div>
     </div>
   </div>
