@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON SURVIVOR</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="game"></canvas>
+
+    <div id="hud">
+      <div id="hp-bar-wrap"><div id="hp-bar"></div><span id="hp-text">100/100</span></div>
+      <div id="xp-bar-wrap"><div id="xp-bar"></div></div>
+      <div id="stats-row">
+        <span id="level-text">Lv.1</span>
+        <span id="timer-text">00:00</span>
+        <span id="kills-text">Kills: 0</span>
+      </div>
+    </div>
+
+    <div id="start-screen" class="overlay">
+      <h1>NEON SURVIVOR</h1>
+      <p class="sub">敵の大群に囲まれながら、できるだけ長く生き延びろ。<br>レベルアップで強くなる、飽きの来ないサバイバル。</p>
+      <p class="best">ベストスコア: <span id="best-score-start">0</span></p>
+      <button id="start-btn">START</button>
+      <p class="controls">移動: W A S D / 矢印キー &nbsp;|&nbsp; 攻撃: 自動 &nbsp;|&nbsp; 一時停止: ESC</p>
+    </div>
+
+    <div id="levelup-screen" class="overlay hidden">
+      <h2>LEVEL UP!</h2>
+      <p class="sub">アップグレードを1つ選択</p>
+      <div id="upgrade-cards"></div>
+    </div>
+
+    <div id="gameover-screen" class="overlay hidden">
+      <h2>GAME OVER</h2>
+      <div class="result-grid">
+        <div><span class="label">生存時間</span><span id="final-time" class="value">00:00</span></div>
+        <div><span class="label">キル数</span><span id="final-kills" class="value">0</span></div>
+        <div><span class="label">レベル</span><span id="final-level" class="value">1</span></div>
+        <div><span class="label">スコア</span><span id="final-score" class="value">0</span></div>
+      </div>
+      <p class="best">ベストスコア: <span id="best-score-end">0</span> <span id="new-best" class="hidden">🏆 NEW BEST!</span></p>
+      <button id="retry-btn">もう一度挑戦</button>
+    </div>
+
+    <div id="pause-screen" class="overlay hidden">
+      <h2>PAUSED</h2>
+      <button id="resume-btn">再開</button>
+    </div>
+  </div>
+
+<script src="game.js"></script>
+</body>
+</html>
