@@ -700,6 +700,63 @@ prestigeConfirm.addEventListener('click', () => {
   renderAll();
 });
 
+// ---------- cheat tool ----------
+// Dev/debug shortcuts for a single-player, no-leaderboard idle game — not a
+// concern for fairness, just a fast way to poke at late-game state.
+const cheatBtn = document.getElementById('cheat-btn');
+const cheatModal = document.getElementById('cheat-modal');
+const cheatClose = document.getElementById('cheat-close');
+
+cheatBtn.addEventListener('click', () => cheatModal.classList.remove('hidden'));
+cheatClose.addEventListener('click', () => cheatModal.classList.add('hidden'));
+
+function grantStardust(n) {
+  state.stardust += n;
+  state.totalEarned += n;
+}
+
+document.querySelectorAll('.cheat-action').forEach(btn => {
+  btn.addEventListener('click', () => runCheat(btn.dataset.action));
+});
+
+function runCheat(action) {
+  switch (action) {
+    case 'add1k': grantStardust(1000); break;
+    case 'add100k': grantStardust(100000); break;
+    case 'add10m': grantStardust(1e7); break;
+    case 'add1b': grantStardust(1e9); break;
+    case 'addseeds': state.singularities += 10; break;
+    case 'maxbuildings': BUILDING_DEFS.forEach(b => { state.buildings[b.id] += 50; }); break;
+    case 'allupgrades':
+      UPGRADE_DEFS.forEach(u => {
+        if (!state.upgradesOwned.includes(u.id)) state.upgradesOwned.push(u.id);
+      });
+      break;
+    case 'allachievements':
+      ACHIEVEMENT_DEFS.forEach(a => {
+        if (!state.achievementsUnlocked.includes(a.id)) state.achievementsUnlocked.push(a.id);
+      });
+      break;
+    case 'frenzy': state.buff = { type: 'frenzy', mult: 7, until: Date.now() + 20000 }; break;
+    case 'surge': state.buff = { type: 'surge', mult: 3, until: Date.now() + 30000 }; break;
+    case 'golden': goldenNextAt = Date.now() - 1; maybeSpawnGolden(); break;
+    case 'reset':
+      if (!confirm('本当にすべてのセーブデータをリセットしますか？この操作は取り消せません。')) return;
+      localStorage.removeItem(SAVE_KEY);
+      state = freshState();
+      for (let i = 0; i < PETAL_COUNT; i++) {
+        petalMissing[i] = false;
+        const el = document.getElementById('petal-' + i);
+        if (el) el.classList.remove('missing');
+      }
+      cheatModal.classList.add('hidden');
+      break;
+  }
+  checkAchievements();
+  renderAll();
+  showToast('🛠️ チートを適用しました');
+}
+
 // ---------- main render / loop ----------
 function renderAll() {
   stardustTotalEl.textContent = fmtNum(state.stardust);

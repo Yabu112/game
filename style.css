@@ -617,6 +617,42 @@ body {
   font-size: 18px;
 }
 
+.cheat-box { max-width: 480px; }
+
+.cheat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 18px 0 4px;
+}
+
+@media (max-width: 480px) {
+  .cheat-grid { grid-template-columns: 1fr; }
+}
+
+.cheat-action {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+
+.cheat-action:hover { border-color: var(--sun); transform: translateY(-1px); }
+
+.cheat-action.danger {
+  background: #fdeceb;
+  border-color: var(--danger);
+  color: #a02333;
+}
+
+.cheat-action.danger:hover { border-color: #a02333; }
+
 .modal-desc.small { font-size: 12px; }
 
 .modal-actions {
