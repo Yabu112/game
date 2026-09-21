@@ -154,6 +154,12 @@ body {
 
 #core-btn:active { transform: scale(0.94); }
 
+/* Suppress the browser's default focus ring after a mouse/touch click
+   (Safari in particular draws one that hugs this button's round shape),
+   but keep a clear indicator for real keyboard (Tab) navigation. */
+#core-btn:focus { outline: none; }
+#core-btn:focus-visible { outline: 3px solid var(--pink); outline-offset: 6px; }
+
 #core-svg { width: 100%; height: 100%; display: block; }
 
 .petal {
