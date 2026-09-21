@@ -341,26 +341,33 @@ function renderAll() {
   updatePrestigeUI();
 }
 
-let lastT = performance.now();
-let renderAccum = 0;
-function loop(t) {
-  const dt = Math.min(0.5, (t - lastT) / 1000 || 0);
-  lastT = t;
+// requestAnimationFrame is fully suspended by browsers on a backgrounded
+// (non-visible) tab, which would silently stop production the moment the
+// player switches away. setInterval keeps firing even in the background
+// (just throttled to ~once/sec after a while) and, because the gain is
+// computed from the real Date.now() delta rather than an assumed frame
+// time, production stays accurate no matter how sparsely the tick runs.
+let lastTick = Date.now();
 
-  const gain = totalCps() * dt;
+function tick() {
+  const now = Date.now();
+  const dtSec = Math.max(0, (now - lastTick) / 1000);
+  lastTick = now;
+
+  const gain = totalCps() * dtSec;
   if (gain > 0) {
     state.stardust += gain;
     state.totalEarned += gain;
   }
 
-  renderAccum += dt;
-  if (renderAccum >= 0.1) {
-    renderAccum = 0;
-    renderAll();
-  }
-
-  requestAnimationFrame(loop);
+  renderAll();
 }
+
+// Catch up immediately when the tab regains focus, instead of waiting up
+// to a full tick interval to reflect what accrued while it was hidden.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') tick();
+});
 
 // ---------- offline progress ----------
 function applyOfflineProgress() {
@@ -380,6 +387,7 @@ function applyOfflineProgress() {
 initBuildings();
 applyOfflineProgress();
 renderAll();
-requestAnimationFrame(loop);
+lastTick = Date.now();
+setInterval(tick, 200);
 setInterval(save, 8000);
 window.addEventListener('beforeunload', save);
