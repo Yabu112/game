@@ -195,31 +195,52 @@ function pulseCore() {
 }
 
 // ---------- buildings render ----------
-function renderBuildings() {
+// Cards are created once and only have their text/classes patched on each
+// tick. Recreating the DOM every frame (the previous approach) could delete
+// the element a pointer was pressing mid-click, silently dropping clicks.
+const buildingEls = {};
+
+function initBuildings() {
   buildingsListEl.innerHTML = '';
   for (const def of BUILDING_DEFS) {
-    const owned = state.buildings[def.id];
-    const cost = buildingCost(def.id);
-    const affordable = state.stardust >= cost;
-    const cps = def.baseCps * buildingMult(def.id);
-
     const card = document.createElement('div');
-    card.className = 'building-card' + (affordable ? '' : ' disabled');
+    card.className = 'building-card';
     card.innerHTML = `
       <div class="icon">${def.icon}</div>
       <div class="info">
         <div class="name-row">
           <span class="name">${def.name}</span>
-          <span class="owned">×${owned}</span>
+          <span class="owned">×0</span>
         </div>
         <div class="meta">
-          <span class="cost">${fmtNum(cost)} ✦</span>
-          <span>${fmtNum(cps)}/秒</span>
+          <span class="cost">0 ✦</span>
+          <span class="cps-val">0/秒</span>
         </div>
       </div>
     `;
     card.addEventListener('click', () => buyBuilding(def.id));
     buildingsListEl.appendChild(card);
+    buildingEls[def.id] = {
+      card,
+      ownedEl: card.querySelector('.owned'),
+      costEl: card.querySelector('.cost'),
+      cpsEl: card.querySelector('.cps-val'),
+    };
+  }
+}
+
+function renderBuildings() {
+  for (const def of BUILDING_DEFS) {
+    const refs = buildingEls[def.id];
+    const owned = state.buildings[def.id];
+    const cost = buildingCost(def.id);
+    const affordable = state.stardust >= cost;
+    const cps = def.baseCps * buildingMult(def.id);
+
+    refs.ownedEl.textContent = `×${owned}`;
+    refs.costEl.textContent = `${fmtNum(cost)} ✦`;
+    refs.cpsEl.textContent = `${fmtNum(cps)}/秒`;
+    refs.card.classList.toggle('disabled', !affordable);
   }
 }
 
@@ -232,29 +253,47 @@ function buyBuilding(id) {
 }
 
 // ---------- upgrades render ----------
+// Same reuse-don't-recreate approach as buildings: only add/remove cards
+// when an upgrade actually becomes available or gets purchased, and just
+// toggle the affordability class on the rest each tick.
 function availableUpgrades() {
   return UPGRADE_DEFS.filter(u => !state.upgradesOwned.includes(u.id) && state.totalEarned >= u.requireEarned);
 }
 
+const upgradeEls = {};
+
 function renderUpgrades() {
   const list = availableUpgrades();
-  upgradesListEl.innerHTML = '';
-  noUpgradesEl.classList.toggle('hidden', list.length > 0);
-  for (const def of list) {
-    const affordable = state.stardust >= def.cost;
-    const card = document.createElement('div');
-    card.className = 'upgrade-card' + (affordable ? '' : ' disabled');
-    card.innerHTML = `
-      <div class="icon">${def.icon}</div>
-      <div class="info">
-        <div class="name">${def.name}</div>
-        <div class="desc">${def.desc}</div>
-        <div class="cost">${fmtNum(def.cost)} ✦</div>
-      </div>
-    `;
-    card.addEventListener('click', () => buyUpgrade(def.id));
-    upgradesListEl.appendChild(card);
+  const listIds = new Set(list.map(u => u.id));
+
+  for (const id of Object.keys(upgradeEls)) {
+    if (!listIds.has(id)) {
+      upgradeEls[id].remove();
+      delete upgradeEls[id];
+    }
   }
+
+  for (const def of list) {
+    let card = upgradeEls[def.id];
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'upgrade-card';
+      card.innerHTML = `
+        <div class="icon">${def.icon}</div>
+        <div class="info">
+          <div class="name">${def.name}</div>
+          <div class="desc">${def.desc}</div>
+          <div class="cost">${fmtNum(def.cost)} ✦</div>
+        </div>
+      `;
+      card.addEventListener('click', () => buyUpgrade(def.id));
+      upgradesListEl.appendChild(card);
+      upgradeEls[def.id] = card;
+    }
+    card.classList.toggle('disabled', state.stardust < def.cost);
+  }
+
+  noUpgradesEl.classList.toggle('hidden', list.length > 0);
 }
 
 function buyUpgrade(id) {
@@ -338,6 +377,7 @@ function applyOfflineProgress() {
 }
 
 // ---------- init ----------
+initBuildings();
 applyOfflineProgress();
 renderAll();
 requestAnimationFrame(loop);
