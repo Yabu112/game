@@ -12,6 +12,7 @@
     <header id="topbar">
       <div id="brand">🌸 GARDEN CLICKER</div>
       <div id="prestige-info">
+        <button id="mute-btn" class="icon-btn" aria-label="サウンドのオン/オフ">🔊</button>
         <span id="singularity-count">黄金の種: 0</span>
         <button id="prestige-btn" disabled>季節を巡らせる</button>
       </div>
@@ -73,6 +74,13 @@
         </div>
 
         <div id="tab-buildings" class="tab-content active">
+          <div id="buy-qty-row" class="qty-row">
+            <span class="qty-label">購入数</span>
+            <button class="qty-btn active" data-qty="1">×1</button>
+            <button class="qty-btn" data-qty="10">×10</button>
+            <button class="qty-btn" data-qty="100">×100</button>
+            <button class="qty-btn" data-qty="max">MAX</button>
+          </div>
           <div id="buildings-list"></div>
         </div>
 

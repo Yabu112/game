@@ -19,6 +19,71 @@ const GOLDEN_MAX_INTERVAL = 85; // seconds
 const GOLDEN_LIFETIME_MS = 13000;
 
 const rand = (a, b) => a + Math.random() * (b - a);
+const BUILD_COST_RATIO = 1.15;
+
+// ---------- audio (synthesized, no external assets) ----------
+const MUTE_KEY = 'gardenClickerMuted';
+let muted = localStorage.getItem(MUTE_KEY) === '1';
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    try { audioCtx = new Ctor(); } catch (e) { return null; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq, duration, type, peak, delay) {
+  if (muted) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const t0 = ctx.currentTime + (delay || 0);
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(peak != null ? peak : 0.12, t0 + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.03);
+}
+
+function sfxClick(isCrit) {
+  if (isCrit) {
+    playTone(880, 0.18, 'triangle', 0.16);
+    playTone(1320, 0.22, 'triangle', 0.1, 0.03);
+  } else {
+    playTone(rand(520, 640), 0.09, 'sine', 0.08);
+  }
+}
+
+function sfxBuy() {
+  playTone(440, 0.09, 'square', 0.06);
+  playTone(660, 0.12, 'square', 0.05, 0.05);
+}
+
+function sfxAchievement() {
+  playTone(660, 0.12, 'triangle', 0.13);
+  playTone(880, 0.12, 'triangle', 0.13, 0.09);
+  playTone(1100, 0.2, 'triangle', 0.13, 0.18);
+}
+
+function sfxGolden() {
+  playTone(784, 0.1, 'sine', 0.1);
+  playTone(988, 0.1, 'sine', 0.1, 0.06);
+  playTone(1175, 0.18, 'sine', 0.1, 0.12);
+}
+
+function sfxPrestige() {
+  playTone(392, 0.15, 'sawtooth', 0.07);
+  playTone(494, 0.15, 'sawtooth', 0.07, 0.08);
+  playTone(587, 0.22, 'sawtooth', 0.07, 0.16);
+}
 
 // ---------- data ----------
 // `id` / `target` values are the save-file keys and must never change —
@@ -183,7 +248,26 @@ function clickValue() {
 
 function buildingCost(id) {
   const def = BUILDING_DEFS.find(b => b.id === id);
-  return Math.round(def.baseCost * Math.pow(1.15, state.buildings[id]));
+  return Math.round(def.baseCost * Math.pow(BUILD_COST_RATIO, state.buildings[id]));
+}
+
+// Cost of buying `n` more of a building starting from its current owned
+// count: a geometric series, baseCost * r^owned * (r^n - 1)/(r - 1).
+function bulkBuildingCost(id, n) {
+  if (n <= 0) return 0;
+  const def = BUILDING_DEFS.find(b => b.id === id);
+  const r = BUILD_COST_RATIO;
+  return Math.round(def.baseCost * Math.pow(r, state.buildings[id]) * (Math.pow(r, n) - 1) / (r - 1));
+}
+
+// Closed-form max affordable count (no purchase loop needed even at huge n).
+function maxAffordable(id) {
+  const def = BUILDING_DEFS.find(b => b.id === id);
+  const r = BUILD_COST_RATIO;
+  const nextCost = def.baseCost * Math.pow(r, state.buildings[id]);
+  if (state.stardust < nextCost) return 0;
+  const n = Math.floor(Math.log((state.stardust * (r - 1)) / nextCost + 1) / Math.log(r));
+  return Math.max(0, n);
 }
 
 function potentialSingularities() {
@@ -221,6 +305,26 @@ const achvCountEl = document.getElementById('achv-count');
 const buffBannerEl = document.getElementById('buff-banner');
 const goldenLayerEl = document.getElementById('golden-layer');
 const toastLayerEl = document.getElementById('toast-layer');
+const muteBtn = document.getElementById('mute-btn');
+
+muteBtn.textContent = muted ? '🔇' : '🔊';
+muteBtn.addEventListener('click', () => {
+  muted = !muted;
+  localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
+  muteBtn.textContent = muted ? '🔇' : '🔊';
+  if (!muted) { getAudioCtx(); playTone(660, 0.08, 'sine', 0.08); }
+});
+
+// Space bar clicks the flower from anywhere on the page, not just when the
+// button itself is focused. preventDefault on keydown (rather than reacting
+// on keyup) stops both page scroll and the button's own native space
+// activation, so a focused core-btn doesn't fire the click twice.
+window.addEventListener('keydown', (e) => {
+  if ((e.code === 'Space' || e.key === ' ') && !e.repeat) {
+    e.preventDefault();
+    coreBtn.click();
+  }
+});
 
 // ---------- tabs ----------
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -243,6 +347,7 @@ coreBtn.addEventListener('click', (e) => {
   spawnFloatNumber(e, gain, isCrit);
   pulseCore();
   shedRandomPetal();
+  sfxClick(isCrit);
   checkAchievements();
 });
 
@@ -328,26 +433,53 @@ function initBuildings() {
   }
 }
 
+// ×1 / ×10 / ×100 / MAX — how many units a building-card click buys.
+let buyQty = 1;
+
+document.querySelectorAll('.qty-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.qty-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    buyQty = btn.dataset.qty === 'max' ? 'max' : parseInt(btn.dataset.qty, 10);
+    renderBuildings();
+  });
+});
+
+function buildingBuyQty(id) {
+  if (buyQty === 'max') return maxAffordable(id);
+  return buyQty;
+}
+
 function renderBuildings() {
   for (const def of BUILDING_DEFS) {
     const refs = buildingEls[def.id];
     const owned = state.buildings[def.id];
-    const cost = buildingCost(def.id);
-    const affordable = state.stardust >= cost;
     const cps = def.baseCps * buildingMult(def.id);
 
+    // MAX at 0 affordable still shows the price of the next single unit
+    // (a real, meaningful number) rather than "0 ✦"; a fixed ×10/×100
+    // always shows that exact batch's price even if unaffordable, so the
+    // player can see what they're saving up for.
+    const affordableQty = buildingBuyQty(def.id);
+    const displayQty = affordableQty > 0 ? affordableQty : (buyQty === 'max' ? 1 : buyQty);
+    const cost = bulkBuildingCost(def.id, displayQty);
+    const affordable = state.stardust >= cost;
+
     refs.ownedEl.textContent = `×${owned}`;
-    refs.costEl.textContent = `${fmtNum(cost)} ✦`;
+    refs.costEl.textContent = `${fmtNum(cost)} ✦${displayQty > 1 ? ` (×${displayQty})` : ''}`;
     refs.cpsEl.textContent = `${fmtNum(cps)}/秒`;
     refs.card.classList.toggle('disabled', !affordable);
   }
 }
 
 function buyBuilding(id) {
-  const cost = buildingCost(id);
+  const qty = buildingBuyQty(id);
+  if (qty <= 0) return;
+  const cost = bulkBuildingCost(id, qty);
   if (state.stardust < cost) return;
   state.stardust -= cost;
-  state.buildings[id] += 1;
+  state.buildings[id] += qty;
+  sfxBuy();
   renderAll();
 }
 
@@ -400,6 +532,7 @@ function buyUpgrade(id) {
   if (!def || state.stardust < def.cost || state.upgradesOwned.includes(id)) return;
   state.stardust -= def.cost;
   state.upgradesOwned.push(id);
+  sfxBuy();
   renderAll();
 }
 
@@ -441,6 +574,7 @@ function checkAchievements() {
     if (!state.achievementsUnlocked.includes(def.id) && def.check(state)) {
       state.achievementsUnlocked.push(def.id);
       showToast(`🏆 実績解除: ${def.name}`);
+      sfxAchievement();
       unlockedNew = true;
     }
   }
@@ -502,6 +636,7 @@ function spawnGoldenOrb() {
 
 function applyGoldenEffect() {
   state.goldenClicks += 1;
+  sfxGolden();
   const roll = Math.random();
   if (roll < 0.4) {
     const gain = Math.max(totalCps() * 60, clickValue() * 40, 50);
@@ -555,6 +690,7 @@ prestigeConfirm.addEventListener('click', () => {
   BUILDING_DEFS.forEach(b => state.buildings[b.id] = 0);
   state.upgradesOwned = [];
   prestigeModal.classList.add('hidden');
+  sfxPrestige();
   checkAchievements();
   renderAll();
 });
