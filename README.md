@@ -27,6 +27,18 @@
 
 ファイル: `clicker/index.html` / `clicker/style.css` / `clicker/script.js`
 
+### ◆ BLOCK CASCADE（`tetris/`）
+
+定番の落下ブロックパズル。7バッグ方式でどのピースも公平に出現し、ホールド・ゴースト表示・ロック猶予つき。ラインを消すほどスコアが伸び、10ライン消すごとにレベルが上がって落下速度が加速していきます。
+
+- **移動**: `←` `→`（長押しで加速移動）
+- **ソフトドロップ**: `↓`　**ハードドロップ**: `Space`
+- **回転**: `↑` / `X`（右回転）、`Z`（左回転）
+- **ホールド**: `C`　**一時停止**: `P`（モバイルは画面下のボタンで操作）
+- ベストスコアはブラウザの `localStorage` に保存
+
+ファイル: `tetris/index.html` / `tetris/style.css` / `tetris/script.js`
+
 ## 遊び方
 
 各ゲームのディレクトリで `index.html` を直接ブラウザで開くか、リポジトリのルートでローカルサーバーを立てて開いてください。
@@ -35,4 +47,5 @@
 python3 -m http.server 8000
 # http://localhost:8000/            → NEON SURVIVOR
 # http://localhost:8000/clicker/    → COSMIC CLICKER
+# http://localhost:8000/tetris/     → BLOCK CASCADE
 ```
