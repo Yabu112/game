@@ -23,30 +23,36 @@
         <div id="stardust-total">0</div>
         <div id="stardust-label">スターダスト</div>
         <div id="cps-label">毎秒 +0</div>
+        <div id="buff-banner" class="hidden"></div>
 
-        <button id="core-btn" aria-label="コアをクリックしてスターダストを採取">
-          <svg id="core-svg" viewBox="0 0 200 200">
-            <defs>
-              <radialGradient id="coreGrad" cx="50%" cy="45%" r="60%">
-                <stop offset="0%" stop-color="#fff6da"/>
-                <stop offset="35%" stop-color="#ffd24d"/>
-                <stop offset="75%" stop-color="#b678ff"/>
-                <stop offset="100%" stop-color="#5b2fb8"/>
-              </radialGradient>
-            </defs>
-            <circle cx="100" cy="100" r="88" fill="url(#coreGrad)"/>
-          </svg>
-        </button>
+        <div id="core-wrap">
+          <button id="core-btn" aria-label="コアをクリックしてスターダストを採取">
+            <svg id="core-svg" viewBox="0 0 200 200">
+              <defs>
+                <radialGradient id="coreGrad" cx="50%" cy="45%" r="60%">
+                  <stop offset="0%" stop-color="#fff6da"/>
+                  <stop offset="35%" stop-color="#ffd24d"/>
+                  <stop offset="75%" stop-color="#b678ff"/>
+                  <stop offset="100%" stop-color="#5b2fb8"/>
+                </radialGradient>
+              </defs>
+              <circle cx="100" cy="100" r="88" fill="url(#coreGrad)"/>
+            </svg>
+          </button>
 
-        <div id="float-layer"></div>
+          <div id="float-layer"></div>
+        </div>
 
         <p id="click-power-label">クリック威力: +1</p>
+
+        <div id="golden-layer"></div>
       </section>
 
       <section id="side-panel">
         <div class="tabs">
           <button class="tab-btn active" data-tab="buildings">施設</button>
           <button class="tab-btn" data-tab="upgrades">アップグレード</button>
+          <button class="tab-btn" data-tab="achievements">実績 <span id="achv-count">0/0</span></button>
         </div>
 
         <div id="tab-buildings" class="tab-content active">
@@ -57,11 +63,17 @@
           <div id="upgrades-list"></div>
           <p id="no-upgrades" class="empty-hint">まだ購入できるアップグレードはありません。</p>
         </div>
+
+        <div id="tab-achievements" class="tab-content">
+          <div id="achievements-list"></div>
+        </div>
       </section>
 
     </main>
 
   </div>
+
+  <div id="toast-layer"></div>
 
   <div id="prestige-modal" class="overlay hidden">
     <div class="modal-box">
