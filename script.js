@@ -380,8 +380,13 @@ function shedRandomPetal() {
 function spawnFloatNumber(e, gain, isCrit) {
   const rect = coreBtn.getBoundingClientRect();
   const layerRect = floatLayer.getBoundingClientRect();
-  const clientX = e.clientX ?? (rect.left + rect.width / 2);
-  const clientY = e.clientY ?? (rect.top + rect.height / 2);
+  // A synthetic click (coreBtn.click(), used by the spacebar handler) reports
+  // clientX/clientY as 0, not null/undefined — `??` doesn't catch that, so
+  // the number rendered off in the top-left corner instead of falling back
+  // to center. e.isTrusted is false for any programmatic click, real ones
+  // (mouse/touch) are always true, so it reliably tells the two apart.
+  const clientX = e.isTrusted ? e.clientX : rect.left + rect.width / 2;
+  const clientY = e.isTrusted ? e.clientY : rect.top + rect.height / 2;
   const x = clientX - layerRect.left + (Math.random() * 30 - 15);
   const y = clientY - layerRect.top;
   const el = document.createElement('div');
